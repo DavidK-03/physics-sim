@@ -1,790 +1,1143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Physics Lab — Interactive Simulations</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>מועד ב׳ — פיזיקה מכניקה</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f14;
+  --surface:#161920;
+  --surface2:#1e2230;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
+  --accent:#5B8EFF;
+  --accent2:#FF7A5C;
+  --accent3:#52D9A0;
+  --accent4:#FFD166;
+  --text:#dde3f0;
+  --muted:#6b7494;
+  --muted2:#9aa3bf;
+  --radius:10px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Heebo',sans-serif;
+  font-size:16px;
+  line-height:1.7;
+  min-height:100vh;
+  direction:rtl;
+}
 
-    :root {
-      --bg: #0a0a0f;
-      --surface: #13131a;
-      --surface2: #1c1c26;
-      --border: rgba(255,255,255,0.08);
-      --accent: #7DF9C8;
-      --accent2: #FF6B6B;
-      --accent3: #FFD166;
-      --text: #e8e8f0;
-      --muted: #6b6b80;
-    }
+/* Layout */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+/* Sidebar */
+.sidebar{
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  padding:1.5rem 1rem;display:flex;flex-direction:column;gap:0.5rem;
+}
+.sidebar-logo{
+  font-size:1.1rem;font-weight:900;color:var(--accent);
+  letter-spacing:-0.02em;margin-bottom:1rem;padding-bottom:1rem;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-logo span{color:var(--text);font-weight:300}
+.nav-section{font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin:0.8rem 0 0.3rem;padding:0 0.5rem}
+.nav-btn{
+  display:flex;align-items:center;gap:0.6rem;
+  padding:0.55rem 0.75rem;border-radius:7px;border:none;
+  background:transparent;color:var(--muted2);cursor:pointer;
+  font-family:'Heebo',sans-serif;font-size:0.82rem;text-align:right;width:100%;
+  transition:all 0.15s;
+}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:rgba(91,142,255,0.12);color:var(--accent);font-weight:500}
+.nav-btn .badge{
+  margin-right:auto;font-size:0.6rem;padding:2px 7px;border-radius:99px;
+  background:var(--surface2);color:var(--muted);font-family:'JetBrains Mono',monospace;
+}
+.nav-btn.active .badge{background:rgba(91,142,255,0.2);color:var(--accent)}
 
-    /* Grid background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(125,249,200,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(125,249,200,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
+/* Main */
+.main{padding:2.5rem 2.5rem 5rem;max-width:900px}
 
-    header {
-      position: relative;
-      z-index: 1;
-      padding: 2rem 2.5rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+/* Header */
+.page-header{margin-bottom:3rem}
+.page-tag{
+  display:inline-block;font-size:0.72rem;font-weight:700;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--accent3);
+  background:rgba(82,217,160,0.1);padding:0.3rem 0.8rem;border-radius:99px;
+  margin-bottom:0.8rem;
+}
+.page-title{font-size:2.4rem;font-weight:900;line-height:1.15;color:var(--text);margin-bottom:0.5rem}
+.page-sub{color:var(--muted2);font-size:0.95rem}
 
-    .logo {
-      font-size: 1.1rem;
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
+/* Section */
+.q-section{
+  margin-bottom:4rem;scroll-margin-top:2rem;
+}
+.q-header{
+  display:flex;align-items:flex-start;gap:1rem;margin-bottom:2rem;
+  padding-bottom:1.2rem;border-bottom:1px solid var(--border);
+}
+.q-number{
+  flex-shrink:0;width:44px;height:44px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:500;
+}
+.q-number.blue{background:rgba(91,142,255,0.15);color:var(--accent)}
+.q-number.orange{background:rgba(255,122,92,0.15);color:var(--accent2)}
+.q-number.green{background:rgba(82,217,160,0.15);color:var(--accent3)}
+.q-number.yellow{background:rgba(255,209,102,0.15);color:var(--accent4)}
+.q-title{font-size:1.35rem;font-weight:700;color:var(--text);margin-bottom:0.2rem}
+.q-desc{color:var(--muted2);font-size:0.88rem}
 
-    .logo span { color: var(--text); }
+/* Sub question */
+.sub-q{margin-bottom:2.5rem}
+.sub-q-header{
+  display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;
+}
+.sub-label{
+  font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--accent4);background:rgba(255,209,102,0.1);
+  padding:0.25rem 0.65rem;border-radius:99px;
+}
+.sub-title{font-size:1rem;font-weight:600;color:var(--text)}
 
-    .subtitle {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-    }
+/* Problem statement */
+.problem-box{
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:1.2rem 1.4rem;margin-bottom:1.2rem;
+  border-right:3px solid var(--accent);
+}
+.problem-box p{color:var(--muted2);font-size:0.92rem;line-height:1.8}
 
-    nav {
-      display: flex;
-      gap: 0.5rem;
-    }
+/* Canvas */
+.sim-container{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--radius);overflow:hidden;margin-bottom:1.2rem;
+  position:relative;
+}
+.sim-label{
+  position:absolute;top:0.7rem;right:0.9rem;
+  font-family:'JetBrains Mono',monospace;font-size:0.6rem;
+  letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;
+}
+.sim-container canvas{display:block;width:100%}
+.sim-controls{
+  display:flex;align-items:center;gap:0.6rem;padding:0.8rem 1rem;
+  border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.sim-btn{
+  font-family:'Heebo',sans-serif;font-size:0.75rem;
+  padding:0.35rem 0.9rem;border-radius:6px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--muted2);cursor:pointer;transition:all 0.15s;
+}
+.sim-btn:hover{border-color:var(--accent);color:var(--accent)}
+.sim-stat{
+  font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--muted);margin-right:auto;
+}
 
-    nav button {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.06em;
-      padding: 0.45rem 1rem;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.18s;
-      text-transform: uppercase;
-    }
+/* Solution */
+.solution-toggle{
+  display:flex;align-items:center;gap:0.6rem;width:100%;
+  padding:0.7rem 1rem;border-radius:8px;border:1px dashed var(--border2);
+  background:transparent;color:var(--muted2);cursor:pointer;font-family:'Heebo',sans-serif;
+  font-size:0.85rem;transition:all 0.15s;margin-bottom:0.8rem;
+  text-align:right;
+}
+.solution-toggle:hover{border-color:var(--accent3);color:var(--accent3)}
+.solution-toggle .arrow{transition:transform 0.2s;margin-right:auto;font-size:0.7rem}
+.solution-toggle.open .arrow{transform:rotate(180deg)}
+.solution-toggle.open{border-color:var(--accent3);color:var(--accent3)}
 
-    nav button:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
-    nav button.active {
-      background: var(--accent);
-      color: #0a0a0f;
-      border-color: var(--accent);
-      font-weight: 500;
-    }
+.solution-body{
+  display:none;background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--radius);padding:1.4rem 1.6rem;margin-bottom:1.2rem;
+}
+.solution-body.visible{display:block}
 
-    .layout {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: 1fr 280px;
-      height: calc(100vh - 80px);
-    }
+.step{display:flex;gap:1rem;margin-bottom:1.4rem}
+.step:last-child{margin-bottom:0}
+.step-num{
+  flex-shrink:0;width:26px;height:26px;border-radius:50%;
+  background:rgba(91,142,255,0.15);color:var(--accent);
+  font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:500;
+  display:flex;align-items:center;justify-content:center;margin-top:2px;
+}
+.step-content{}
+.step-title{font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:0.4rem}
+.step-text{font-size:0.88rem;color:var(--muted2);line-height:1.8}
+.step-text p{margin-bottom:0.5rem}
 
-    /* Canvas area */
-    .canvas-wrap {
-      position: relative;
-      border-right: 1px solid var(--border);
-      overflow: hidden;
-      cursor: crosshair;
-    }
+.formula-block{
+  background:var(--surface2);border-radius:7px;padding:0.9rem 1.1rem;
+  margin:0.7rem 0;border-right:2px solid var(--accent4);
+  font-size:0.9rem;overflow-x:auto;
+}
+.formula-block.result{border-right-color:var(--accent3)}
+.formula-block.highlight{border-right-color:var(--accent2)}
 
-    #sim-canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
+.answer-box{
+  background:rgba(82,217,160,0.07);border:1px solid rgba(82,217,160,0.25);
+  border-radius:8px;padding:1rem 1.2rem;margin-top:1rem;
+}
+.answer-label{font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--accent3);margin-bottom:0.4rem}
+.answer-val{font-size:0.95rem;color:var(--text);overflow-x:auto}
 
-    .canvas-label {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      text-transform: uppercase;
-      pointer-events: none;
-    }
+/* Info chips */
+.chips{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.chip{
+  font-size:0.72rem;padding:0.25rem 0.7rem;border-radius:99px;
+  border:1px solid var(--border2);color:var(--muted2);
+  font-family:'JetBrains Mono',monospace;
+}
+.chip.blue{border-color:rgba(91,142,255,0.3);color:var(--accent)}
+.chip.green{border-color:rgba(82,217,160,0.3);color:var(--accent3)}
 
-    .click-hint {
-      position: absolute;
-      bottom: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.06em;
-      pointer-events: none;
-      transition: opacity 0.5s;
-    }
+/* Divider */
+.divider{height:1px;background:var(--border);margin:2rem 0}
 
-    /* Sidebar */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      padding: 1.5rem;
-      gap: 1.5rem;
-    }
+/* Assumption note */
+.note{
+  display:flex;gap:0.7rem;background:rgba(255,209,102,0.06);
+  border:1px solid rgba(255,209,102,0.2);border-radius:8px;
+  padding:0.8rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:var(--muted2);
+}
+.note-icon{color:var(--accent4);flex-shrink:0;font-size:1rem}
 
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.2rem;
-    }
-
-    .panel-title {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 1rem;
-    }
-
-    .control-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.85rem;
-      gap: 0.5rem;
-    }
-
-    .control-row:last-child { margin-bottom: 0; }
-
-    .control-label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      flex: 1;
-    }
-
-    .control-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--accent);
-      min-width: 36px;
-      text-align: right;
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 90px;
-      height: 3px;
-      background: var(--surface2);
-      border-radius: 2px;
-      outline: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--accent);
-      cursor: pointer;
-    }
-
-    .btn-row {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .btn {
-      flex: 1;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      padding: 0.55rem 0.5rem;
-      border-radius: 5px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .btn:hover { border-color: var(--accent); color: var(--accent); }
-    .btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
-
-    /* Stats */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.6rem;
-    }
-
-    .stat {
-      background: var(--surface2);
-      border-radius: 6px;
-      padding: 0.75rem;
-    }
-
-    .stat-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.3rem;
-    }
-
-    .stat-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.05rem;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .stat-val.green { color: var(--accent); }
-    .stat-val.red { color: var(--accent2); }
-    .stat-val.yellow { color: var(--accent3); }
-
-    /* Shape selector */
-    .shape-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-    }
-
-    .shape-btn {
-      padding: 0.6rem;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--muted);
-      cursor: pointer;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.05em;
-      text-align: center;
-      transition: all 0.15s;
-      text-transform: uppercase;
-    }
-
-    .shape-btn svg { display: block; margin: 0 auto 4px; }
-    .shape-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
-    .shape-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(125,249,200,0.07); }
-
-    /* Info box */
-    .info-box {
-      background: rgba(125,249,200,0.05);
-      border: 1px solid rgba(125,249,200,0.15);
-      border-radius: 6px;
-      padding: 0.9rem;
-    }
-
-    .info-formula {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--accent3);
-      margin-bottom: 0.4rem;
-    }
-
-    .info-desc {
-      font-size: 0.74rem;
-      color: var(--muted);
-      line-height: 1.55;
-    }
-
-    /* Scene selector */
-    .scene-tabs {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-
-    .scene-tab {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.62rem;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      padding: 0.35rem 0.7rem;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-
-    .scene-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
-    .scene-tab.active { border-color: var(--accent3); color: var(--accent3); }
-  </style>
+@media(max-width:760px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:1.5rem 1rem 4rem}
+  .page-title{font-size:1.8rem}
+}
+</style>
 </head>
 <body>
+<div class="app">
 
-<header>
-  <div>
-    <div class="logo">Physics<span>Lab</span></div>
-    <div class="subtitle">// interactive simulations — matter.js engine</div>
-  </div>
-  <nav id="mode-nav">
-    <button class="active" data-mode="sandbox">Sandbox</button>
-    <button data-mode="pendulum">Pendulum</button>
-    <button data-mode="chain">Chain</button>
-    <button data-mode="newton">Newton's Cradle</button>
-  </nav>
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">פיזיקה<span> מועד ב׳</span></div>
+  <div class="nav-section">שאלות</div>
+  <button class="nav-btn active" onclick="scrollTo('q1')">
+    <span>שאלה 1 — קרון שטוח</span>
+    <span class="badge">3 סעיפים</span>
+  </button>
+  <button class="nav-btn" onclick="scrollTo('q2')">
+    <span>שאלה 2 — דיסקה תלויה</span>
+    <span class="badge">5 סעיפים</span>
+  </button>
+  <button class="nav-btn" onclick="scrollTo('q3')">
+    <span>שאלה 3 — יויו</span>
+    <span class="badge">5 סעיפים</span>
+  </button>
+  <button class="nav-btn" onclick="scrollTo('qbonus')">
+    <span>שאלת מילואים</span>
+    <span class="badge">בונוס</span>
+  </button>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+<header class="page-header">
+  <div class="page-tag">מכניקה קלאסית</div>
+  <h1 class="page-title">מועד ב׳ — פתרון מלא</h1>
+  <p class="page-sub">סימולציות אינטראקטיביות, נוסחאות, ופתרונות מפורטים לכל סעיף</p>
 </header>
 
-<div class="layout">
-  <div class="canvas-wrap">
-    <div class="canvas-label" id="canvas-label">// sandbox mode — click to spawn objects</div>
-    <canvas id="sim-canvas"></canvas>
-    <div class="click-hint" id="click-hint">click anywhere to add objects</div>
+<!-- ═══════════════════════════════════════════ QUESTION 1 ═══ -->
+<section class="q-section" id="q1">
+  <div class="q-header">
+    <div class="q-number blue">Q1</div>
+    <div>
+      <div class="q-title">קרון שטוח עם רץ</div>
+      <div class="q-desc">שימור תנע, מסה משתנה, חיכוך ובוץ</div>
+    </div>
   </div>
 
-  <div class="sidebar">
-
-    <!-- Scene presets -->
-    <div class="panel">
-      <div class="panel-title">// quick scenes</div>
-      <div class="scene-tabs" id="scene-tabs">
-        <button class="scene-tab active" data-scene="empty">Empty</button>
-        <button class="scene-tab" data-scene="ramp">Ramp</button>
-        <button class="scene-tab" data-scene="funnel">Funnel</button>
-        <button class="scene-tab" data-scene="pyramid">Pyramid</button>
-      </div>
-    </div>
-
-    <!-- Shape selector -->
-    <div class="panel">
-      <div class="panel-title">// spawn shape</div>
-      <div class="shape-grid">
-        <button class="shape-btn active" data-shape="circle">
-          <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          Circle
-        </button>
-        <button class="shape-btn" data-shape="box">
-          <svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          Box
-        </button>
-        <button class="shape-btn" data-shape="triangle">
-          <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 17,17 3,17" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          Triangle
-        </button>
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="panel">
-      <div class="panel-title">// physics controls</div>
-      <div class="control-row">
-        <span class="control-label">Gravity</span>
-        <input type="range" id="gravity" min="0" max="3" step="0.1" value="1" />
-        <span class="control-val" id="gravity-val">1.0</span>
-      </div>
-      <div class="control-row">
-        <span class="control-label">Restitution</span>
-        <input type="range" id="restitution" min="0" max="1" step="0.05" value="0.4" />
-        <span class="control-val" id="restitution-val">0.4</span>
-      </div>
-      <div class="control-row">
-        <span class="control-label">Friction</span>
-        <input type="range" id="friction" min="0" max="1" step="0.05" value="0.1" />
-        <span class="control-val" id="friction-val">0.1</span>
-      </div>
-      <div class="control-row">
-        <span class="control-label">Air Resistance</span>
-        <input type="range" id="airfriction" min="0" max="0.1" step="0.001" value="0.01" />
-        <span class="control-val" id="airfriction-val">0.01</span>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="panel">
-      <div class="panel-title">// actions</div>
-      <div class="btn-row" style="margin-bottom:0.5rem">
-        <button class="btn" id="btn-pause">Pause</button>
-        <button class="btn" id="btn-slow">0.5× Speed</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn" id="btn-explode">Explode!</button>
-        <button class="btn danger" id="btn-clear">Clear All</button>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="panel">
-      <div class="panel-title">// live stats</div>
-      <div class="stats-grid">
-        <div class="stat">
-          <div class="stat-label">Objects</div>
-          <div class="stat-val green" id="stat-objects">0</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">FPS</div>
-          <div class="stat-val yellow" id="stat-fps">60</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Gravity</div>
-          <div class="stat-val" id="stat-gravity">9.8</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Bouncy</div>
-          <div class="stat-val red" id="stat-rest">0.4</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Formula -->
-    <div class="panel">
-      <div class="panel-title">// physics formula</div>
-      <div class="info-box">
-        <div class="info-formula" id="formula-display">F = ma</div>
-        <div class="info-desc" id="formula-desc">Newton's Second Law: Force equals mass times acceleration. The net force on an object determines how it accelerates.</div>
-      </div>
-    </div>
-
+  <div class="note">
+    <span class="note-icon">📌</span>
+    <span>בכל תרחיש: הקרון מתחיל ממנוחה. בסעיפים 2+3 אין במה שאליה הרץ יכוון. קרון מסה M, אורך L. רץ מסה m, מהירות u קבועה יחסית לקרון.</span>
   </div>
+
+  <!-- 1.1 -->
+  <div class="sub-q" id="q1-1">
+    <div class="sub-q-header">
+      <span class="sub-label">סעיף 1</span>
+      <span class="sub-title">רץ יחיד — מרחק הקרון ומהירות מינימלית לנחיתה</span>
+    </div>
+    <div class="problem-box"><p>קרון C ממוקם צמוד לבמה P. הרץ עומד ב-A, רץ במהירות u יחסית לקרון ומזנק ב-45° ב-B. אין חיכוך בגלגלים.<br/>
+    <strong>א.</strong> מהו המרחק שהקרון יעבור עד שהרץ מגיע ל-B?<br/>
+    <strong>ב.</strong> מה המהירות המינימלית u כדי שהרץ ינחת על הבמה?</p></div>
+
+    <!-- Simulation 1 -->
+    <div class="sim-container">
+      <span class="sim-label">// סימולציה — שימור מרכז מסה</span>
+      <canvas id="c1" height="200"></canvas>
+      <div class="sim-controls">
+        <button class="sim-btn" onclick="runSim1()">▶ הפעל</button>
+        <button class="sim-btn" onclick="resetSim1()">↺ איפוס</button>
+        <span class="sim-stat" id="s1-stat">מרכז מסה: קבוע</span>
+      </div>
+    </div>
+
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol1a')">
+      <span>👁 הצג פתרון מלא</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol1a">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">א. מרחק הקרון — שימור מרכז מסה</div>
+          <div class="step-text">
+            <p>אין כוחות חיצוניים אופקיים ⟹ מרכז המסה נשאר במקום.</p>
+            <p>מצב התחלתי (הרץ ב-A, קרון ב-0):</p>
+          </div>
+          <div class="formula-block">$$M_{Tot}\,X_{CM,i} = mL + \frac{L}{2}M$$</div>
+          <div class="step-text"><p>מצב סופי (הרץ ב-B, קרון זז d):</p></div>
+          <div class="formula-block">$$X_{CM,f} = \frac{L}{2}M + d(m+M)$$</div>
+          <div class="step-text"><p>שוויון בין שני המצבים:</p></div>
+          <div class="formula-block result">$$\boxed{d = \frac{m}{m+M}\,L}$$</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">ב. מהירות מינימלית לנחיתה על הבמה</div>
+          <div class="step-text">
+            <p>הקרון חזר ⟹ הרץ צריך לעוף מרחק $d$ כדי להגיע לבמה. קפיצה ב-45°, מהירות $v$:</p>
+          </div>
+          <div class="formula-block">$$\hat{y}: 0 = \frac{v}{\sqrt{2}}t - \frac{1}{2}gt^2 \implies t = \frac{v\sqrt{2}}{g}$$</div>
+          <div class="formula-block">$$\hat{x}: d = \frac{v}{\sqrt{2}}\cdot t = \frac{v^2}{g} \implies v \ge \sqrt{dg}$$</div>
+          <div class="step-text"><p>מהירות הרץ $v$ ומהירות הקרון $V$ קשורות דרך שימור תנע ($mV+MV=0$ ב-lab) ו-$u=v-V$:</p></div>
+          <div class="formula-block">$$u = v\!\left(1+\frac{m}{M}\right)$$</div>
+          <div class="answer-box">
+            <div class="answer-label">תשובה סופית</div>
+            <div class="answer-val">$$u \ge \sqrt{\frac{m(m+M)}{M^2}\,Lg}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.2 -->
+  <div class="sub-q" id="q1-2">
+    <div class="sub-q-header">
+      <span class="sub-label">סעיף 2</span>
+      <span class="sub-title">100 אנשים — מהירות סופית וכוח כפונקציית זמן</span>
+    </div>
+    <div class="problem-box"><p>100 אנשים מסה m כל אחד, רצים אחד-אחד ממנוחה. מרחק $l$ בין כל זוג. קופצים ב-45° מ-B.<br/>
+    <strong>א.</strong> מהירות הקרון כשהאחרון קופץ?<br/>
+    <strong>ב.</strong> הכוח האופקי על הקרון כפונקציה של זמן?</p></div>
+
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol1b')">
+      <span>👁 הצג פתרון מלא</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol1b">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">א. מהירות סופית — נוסחת מסה משתנה (Rocket Equation)</div>
+          <div class="step-text">
+            <p>אין כוחות חיצוניים, כל רץ קופץ עם מרכיב אופקי $\frac{u}{\sqrt{2}}$ ביחס לקרון שמאלה:</p>
+          </div>
+          <div class="formula-block">$$F_{ext}=0 = M(t)\frac{dV}{dt} + \frac{u}{\sqrt{2}}\frac{dM}{dt}$$</div>
+          <div class="step-text"><p>אינטגרל ישיר:</p></div>
+          <div class="formula-block">$$V(t) = -\frac{u}{\sqrt{2}}\ln\!\left(\frac{M(t)}{M(0)}\right)$$</div>
+          <div class="answer-box">
+            <div class="answer-label">מהירות כשהאחרון קופץ</div>
+            <div class="answer-val">$$V_f = \frac{u}{\sqrt{2}}\ln\!\left(\frac{M+100m}{M}\right)$$</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">ב. כוח אופקי על הקרון</div>
+          <div class="step-text">
+            <p>קצב שינוי מסה: כל אדם קופץ כשהמרחק בינו לקודמו הוא $l$, בהפרש זמן $\Delta t = l/u$:</p>
+          </div>
+          <div class="formula-block">$$\frac{dM}{dt} = -\frac{m}{\Delta t} = -\frac{mu}{l}$$</div>
+          <div class="formula-block result">$$F = \frac{mu^2}{\sqrt{2}\,l} = \text{const} \quad (\text{בין כל שתי קפיצות})$$</div>
+          <div class="step-text"><p>הכוח קבוע בין קפיצות ואפס ברגע הקפיצה עצמה (impulsive). פונקציית מדרגות עם ערך $\frac{mu^2}{\sqrt{2}l}$ ב-99 קטעים.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.3 -->
+  <div class="sub-q" id="q1-3">
+    <div class="sub-q-header">
+      <span class="sub-label">סעיף 3</span>
+      <span class="sub-title">גלגלים נעולים — חיכוך ובוץ (כוח ויסקוזי)</span>
+    </div>
+    <div class="problem-box"><p>גלגלים נעולים: חיכוך קינטי $\mu_1$ בין קרון לקרקע. כוח בוץ $F_v = -\beta v$. הרץ על סף החלקה ($\mu_2$ חיכוך עם קרון).<br/>
+    <strong>א.</strong> מהירות הקרון כשהרץ מגיע ל-B?<br/>
+    <strong>ב.</strong> מרחק הקרון עד סיום הריצה?</p></div>
+
+    <!-- Simulation drag -->
+    <div class="sim-container">
+      <span class="sim-label">// מהירות קרון לאורך הזמן</span>
+      <canvas id="c3" height="200"></canvas>
+      <div class="sim-controls">
+        <button class="sim-btn" onclick="drawVelocityCurve()">▶ צייר גרף</button>
+        <label style="font-size:0.75rem;color:var(--muted2)">β/M:
+          <input type="range" id="betaSlider" min="0.1" max="3" step="0.1" value="1" oninput="drawVelocityCurve()" style="vertical-align:middle;width:80px">
+          <span id="betaVal" style="font-family:monospace;font-size:0.72rem;color:var(--accent)">1.0</span>
+        </label>
+      </div>
+    </div>
+
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol1c')">
+      <span>👁 הצג פתרון מלא</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol1c">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">כתיבת משוואת תנועה של הקרון</div>
+          <div class="step-text">
+            <p>כוחות על הקרון (מסה M):</p>
+            <p>• כוח דחיפה מהרץ (חיכוך על סף): $+\mu_2 mg$</p>
+            <p>• חיכוך קינטי מהקרקע: $-\mu_1(M+m)g$</p>
+            <p>• כוח הבוץ: $-\beta v$</p>
+          </div>
+          <div class="formula-block">$$M\dot{v} = \mu_2 mg - \mu_1(m+M)g - \beta v$$</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">פתרון ה-ODE — נוסחת העזר</div>
+          <div class="step-text"><p>המשוואה מהצורה $A - Bq = C\dot{q}$ עם $A = g(\mu_2 m - \mu_1(m+M))$, $B=\beta$, $C=M$, ו-$v(0)=0$:</p></div>
+          <div class="formula-block">$$v(t) = \frac{g}{\beta}\left(\mu_2 m - \mu_1(m+M)\right)\left[1 - e^{-\frac{\beta}{M}t}\right]$$</div>
+          <div class="step-text"><p>זמן הריצה: $t_f = L/u$. נציב:</p></div>
+          <div class="answer-box">
+            <div class="answer-label">א. מהירות ב-B</div>
+            <div class="answer-val">$$v(t_f) = \frac{g}{\beta}\!\left(\mu_2 m - \mu_1(m+M)\right)\!\left[1 - e^{-\frac{\beta L}{Mu}}\right]$$</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">ב. מרחק עד סיום הריצה — אינטגרל</div>
+          <div class="formula-block">$$\Delta x = \int_0^{t_f} v(t)\,dt$$</div>
+          <div class="formula-block result">$$= \frac{g}{\beta}\!\left(\mu_2 m - \mu_1(m+M)\right)\!\left[\frac{L}{u} + \frac{M}{\beta}\!\left(e^{-\frac{\beta L}{Mu}} - 1\right)\right]$$</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ QUESTION 2 ═══ -->
+<section class="q-section" id="q2">
+  <div class="q-header">
+    <div class="q-number orange">Q2</div>
+    <div>
+      <div class="q-title">דיסקה תלויה — מטוטלת</div>
+      <div class="q-desc">מומנט התמד, תנועה מחזורית, אוסילטור מאולץ מרוסן</div>
+    </div>
+  </div>
+
+  <div class="chips">
+    <span class="chip blue">משפט שטיינר</span>
+    <span class="chip blue">מומנט כוח</span>
+    <span class="chip green">תנודות קטנות</span>
+    <span class="chip green">תדירות עצמית</span>
+  </div>
+
+  <!-- Q2a -->
+  <div class="sub-q">
+    <div class="sub-q-header">
+      <span class="sub-label">סעיף א</span>
+      <span class="sub-title">מומנט התמד ומומנט כוח סביב A</span>
+    </div>
+    <div class="problem-box"><p>דיסקה מסה M רדיוס R, תלויה ב-A במרחק $a$ ממרכזה. זווית $\theta$ בין האנך לישר AM.<br/>
+    מהם מומנט ההתמד ומומנט הכוח סביב A?</p></div>
+
+    <!-- Pendulum Simulation -->
+    <div class="sim-container">
+      <span class="sim-label">// סימולציה — דיסקה מתנדנדת</span>
+      <canvas id="c2" width="600" height="280"></canvas>
+      <div class="sim-controls">
+        <button class="sim-btn" onclick="resetPendulum()">↺ איפוס</button>
+        <label style="font-size:0.75rem;color:var(--muted2)">a/R:
+          <input type="range" id="aSlider" min="0.1" max="0.9" step="0.05" value="0.5" oninput="updatePendulum()" style="vertical-align:middle;width:80px">
+          <span id="aVal" style="font-family:monospace;font-size:0.72rem;color:var(--accent)">0.5</span>
+        </label>
+        <span class="sim-stat" id="pendStat">θ = 0°</span>
+      </div>
+    </div>
+
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol2a')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol2a">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">מומנט התמד — משפט שטיינר</div>
+          <div class="step-text"><p>מרכז המסה: $I_{cm} = \frac{1}{2}MR^2$. נוסיף ממשפט שטיינר (מרחק $a$):</p></div>
+          <div class="formula-block">$$I_A = \frac{1}{2}MR^2 + Ma^2 = \frac{1}{2}M(R^2 + 2a^2)$$</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">מומנט הכוח</div>
+          <div class="step-text"><p>הכוח היחיד: כבידה $-Mg\hat{y}$ פועלת על מרכז המסה. וקטור מ-A למרכז: $a(\sin\theta\,\hat{x} - \cos\theta\,\hat{y})$:</p></div>
+          <div class="formula-block result">$$\tau = a(\sin\theta\,\hat{x} - \cos\theta\,\hat{y}) \times (-Mg\hat{y}) = -Mga\sin\theta$$</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2b -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף ב</span><span class="sub-title">משוואת תנועה לזווית θ</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol2b')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol2b">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="formula-block">$$I_A\ddot{\theta} = -Mga\sin\theta$$</div>
+          <div class="formula-block result">$$\ddot{\theta} = -\frac{2ga\sin\theta}{R^2 + 2a^2}$$</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2c -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף ג</span><span class="sub-title">זמן מחזור לתנודות קטנות</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol2c')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol2c">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>קירוב קטן: $\sin\theta \approx \theta$. המשוואה הופכת לאוסילטור פשוט:</p></div>
+          <div class="formula-block">$$\ddot{\theta} = -\frac{2ga}{R^2+2a^2}\,\theta \implies \omega_0^2 = \frac{2ga}{R^2+2a^2}$$</div>
+          <div class="answer-box">
+            <div class="answer-label">זמן מחזור</div>
+            <div class="answer-val">$$T = \frac{2\pi}{\omega_0} = 2\pi\sqrt{\frac{R^2+2a^2}{2ga}}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2d -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף ד</span><span class="sub-title">חיכוך + אילוץ — משוואה במערכת נעה</span></div>
+    <div class="problem-box"><p>מוסיפים מומנט חיכוך $\tau_f = -\beta\dot\theta$. נקודה A נעה: $\vec{X}(t) = X_0\cos\Omega t\,\hat{x}$.<br/>
+    כתבו משוואת תנועה לתנודות קטנות במערכת הנעה עם A.</p></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol2d')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol2d">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">כוח מדומה במערכת הנעה</div>
+          <div class="step-text"><p>תאוצת הציר: $\ddot{X} = -X_0\Omega^2\cos\Omega t$. הכוח המדומה על מרכז המסה: $\vec{F}_{fict} = MX_0\Omega^2\cos\Omega t\,\hat{x}$.</p>
+          <p>מומנט מכוח זה סביב A (קירוב קטנות: $\cos\theta\approx1$):</p></div>
+          <div class="formula-block">$$\tau_{fict} \approx MX_0\Omega^2 a\cos\Omega t$$</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">משוואת תנועה מלאה</div>
+          <div class="formula-block result">$$\ddot{\theta} + \frac{\beta}{I}\dot{\theta} + \frac{Mga}{I}\theta = \frac{MX_0\Omega^2 a}{I}\cos\Omega t$$</div>
+          <div class="step-text"><p>זוהי משוואת אוסילטור הרמוני מרוסן ומאולץ.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2e -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף ה</span><span class="sub-title">אמפליטודה בגבול $t\to\infty$</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol2e')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol2e">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>הפתרון ההומוגני דועך ($e^{-\gamma t}$). נשאר רק הפתרון הפרטי. עם $\gamma = \beta/(2I)$:</p></div>
+          <div class="formula-block">$$A = \frac{F_0/I}{\sqrt{(\omega_0^2-\Omega^2)^2 + 4\gamma^2\Omega^2}}$$</div>
+          <div class="formula-block highlight">כאשר $F_0 = MX_0\Omega^2 a$</div>
+          <div class="answer-box">
+            <div class="answer-label">אמפליטודה סופית</div>
+            <div class="answer-val">$$A = \frac{2X_0\Omega^2 a}{(R^2+2a^2)\sqrt{\!\left(\frac{2ga}{R^2+2a^2}-\Omega^2\right)^{\!2}+\left(\frac{2\beta\Omega}{M(R^2+2a^2)}\right)^{\!2}}}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ QUESTION 3 ═══ -->
+<section class="q-section" id="q3">
+  <div class="q-header">
+    <div class="q-number green">Q3</div>
+    <div>
+      <div class="q-title">יויו — גלגול ללא החלקה</div>
+      <div class="q-desc">מומנט התמד, קשר גיאומטרי, שימור אנרגיה</div>
+    </div>
+  </div>
+
+  <div class="chips">
+    <span class="chip blue">שתי דיסקות: רדיוס $R_2$, חור $R_1$</span>
+    <span class="chip green">חוט עובי $\varepsilon$, רדיוס התחלתי $r_0$</span>
+  </div>
+
+  <!-- Yoyo Simulation -->
+  <div class="sim-container">
+    <span class="sim-label">// סימולציה — יויו נופל</span>
+    <canvas id="c4" height="300"></canvas>
+    <div class="sim-controls">
+      <button class="sim-btn" onclick="resetYoyo()">↺ איפוס</button>
+      <button class="sim-btn" onclick="startYoyo()">▶ שחרר</button>
+      <span class="sim-stat" id="yoyoStat">v = 0 | r = r₀</span>
+    </div>
+  </div>
+
+  <!-- Q3.1 -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף 1</span><span class="sub-title">מומנט התמד של היויו</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol3a')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol3a">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>מומנט דיסקה עם חור: $\frac{1}{2}m(R_2^2+R_1^2)$. שתי דיסקות:</p></div>
+          <div class="formula-block result">$$I = m(R_2^2 + R_1^2)$$</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3.2 -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף 2</span><span class="sub-title">קשר גיאומטרי: ירידה y כפונקציה של r</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol3b')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol3b">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>שטח החוט שהתפרק = אורך $\times$ רוחב = שטח טבעת:</p></div>
+          <div class="formula-block">$$y\cdot\varepsilon = \pi(r_0^2 - r^2)$$</div>
+          <div class="answer-box">
+            <div class="answer-label">קשר גיאומטרי</div>
+            <div class="answer-val">$$y(r) = \frac{\pi(r_0^2 - r^2)}{\varepsilon}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3.3 -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף 3</span><span class="sub-title">מהירות קווית $v$ כפונקציה של $r$ (שימור אנרגיה)</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol3c')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol3c">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>אנרגיה: קינטית מתרגמתית + סיבובית = אנרגיה פוטנציאלית. גלגול ללא החלקה: $\omega = \dot{y}/r$:</p></div>
+          <div class="formula-block">$$0 = \frac{1}{2}(2m)\dot{y}^2 + \frac{1}{2}I\frac{\dot{y}^2}{r^2} - 2mgy$$</div>
+          <div class="step-text"><p>מציבים $I$ ו-$y(r)$:</p></div>
+          <div class="answer-box">
+            <div class="answer-label">מהירות קווית</div>
+            <div class="answer-val">$$v = |\dot{y}| = \sqrt{\frac{4\pi g r^2(r_0^2-r^2)}{\varepsilon\!\left(2r^2+R_2^2+R_1^2\right)}}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3.4 -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף 4</span><span class="sub-title">האם מהירות מקסימלית לפני פירוק מלא?</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol3d')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol3d">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text">
+            <p><strong>כן</strong> — המהירות המקסימלית מתקבלת <em>לפני</em> שהחוט נפרם לגמרי.</p>
+            <p>כאשר $r$ קטן, תנאי הגלגול $\omega = v/r$ דורש מהירות זוויתית גדולה יותר. חלק גדול יותר מאנרגיית הכבידה הופך לאנרגיה סיבובית ולא לתנועה קווית.</p>
+            <p>כלומר: הגורם $\frac{r^2}{2r^2+R_2^2+R_1^2}$ מגיע למקסימום בערך $r$ מסוים בתוך $[R_1, r_0]$.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3.5 -->
+  <div class="sub-q">
+    <div class="sub-q-header"><span class="sub-label">סעיף 5</span><span class="sub-title">מהירות בתחתית ($r = R_1$)</span></div>
+    <button class="solution-toggle" onclick="toggleSolution(this,'sol3e')">
+      <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+    </button>
+    <div class="solution-body" id="sol3e">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-text"><p>מציבים $r = R_1$ בנוסחה שמצאנו:</p></div>
+          <div class="answer-box">
+            <div class="answer-label">מהירות בתחתית</div>
+            <div class="answer-val">$$v_{bottom} = \sqrt{\frac{4\pi g R_1^2(r_0^2-R_1^2)}{\varepsilon(2R_1^2+R_2^2+R_1^2)}} = \sqrt{\frac{4\pi g R_1^2(r_0^2-R_1^2)}{\varepsilon(3R_1^2+R_2^2)}}$$</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════════════ BONUS ═══ -->
+<section class="q-section" id="qbonus">
+  <div class="q-header">
+    <div class="q-number yellow">★</div>
+    <div>
+      <div class="q-title">שאלת מילואים — דיסקה עם צפיפות לא-אחידה</div>
+      <div class="q-desc">אינטגרל מומנט התמד עם $\sigma(r) = \sigma_0(r/R)^k$</div>
+    </div>
+  </div>
+
+  <div class="problem-box"><p>דיסקה דו-ממדית רדיוס R, מסה M, עם צפיפות משטחית $\sigma(r)=\sigma_0\!\left(\frac{r}{R}\right)^k$.<br/>
+  חשבו את מומנט ההתמד.</p></div>
+
+  <button class="solution-toggle" onclick="toggleSolution(this,'solbonus')">
+    <span>👁 הצג פתרון</span><span class="arrow">▼</span>
+  </button>
+  <div class="solution-body" id="solbonus">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">אינטגרל ישיר</div>
+        <div class="formula-block">$$I = \int\!\!\int \sigma(r)\,r^2\,d^2r = \int_0^{2\pi}d\theta\int_0^R \sigma_0\!\left(\frac{r}{R}\right)^k r^2\cdot r\,dr$$</div>
+        <div class="formula-block">$$= \frac{2\pi\sigma_0}{R^k}\int_0^R r^{k+3}\,dr = \frac{2\pi\sigma_0 R^4}{k+4}$$</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">ביטוי עם M</div>
+        <div class="step-text"><p>חישוב המסה הכוללת:</p></div>
+        <div class="formula-block">$$M = \int\sigma\,d^2r = \frac{2\pi\sigma_0 R^2}{k+2} \implies \sigma_0 = \frac{(k+2)M}{2\pi R^2}$$</div>
+        <div class="answer-box">
+          <div class="answer-label">תשובה סופית</div>
+          <div class="answer-val">$$I = \frac{(k+2)\,M\!R^2}{k+4}$$</div>
+        </div>
+        <div class="step-text" style="margin-top:0.8rem"><p><strong>בדיקה:</strong> עבור $k=0$ (אחיד): $I = \frac{2}{4}MR^2 = \frac{1}{2}MR^2$ ✓</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
 </div>
 
 <script>
-const { Engine, Render, Runner, Bodies, Body, World, Events, Mouse, MouseConstraint, Composite, Constraint, Vector } = Matter;
-
-let engine, render, runner, mouseConstraint;
-let currentMode = 'sandbox';
-let currentShape = 'circle';
-let paused = false;
-let slowMode = false;
-let spawnRestitution = 0.4;
-let spawnFriction = 0.1;
-let spawnAirFriction = 0.01;
-
-const canvas = document.getElementById('sim-canvas');
-const wrap = canvas.parentElement;
-
-function getSize() {
-  return { w: wrap.clientWidth, h: wrap.clientHeight };
-}
-
-const COLORS = ['#7DF9C8','#FF6B6B','#FFD166','#A78BFA','#60A5FA','#FB923C'];
-
-function randColor() { return COLORS[Math.floor(Math.random() * COLORS.length)]; }
-
-function initEngine() {
-  if (render) { Render.stop(render); render.canvas.remove(); }
-  if (runner) Runner.stop(runner);
-
-  const { w, h } = getSize();
-
-  engine = Engine.create();
-  engine.gravity.y = 1;
-
-  render = Render.create({
-    canvas,
-    engine,
-    options: {
-      width: w,
-      height: h,
-      background: 'transparent',
-      wireframes: false,
-      pixelRatio: window.devicePixelRatio || 1,
-    }
-  });
-
-  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.15)', lineWidth: 1 } };
-  const ground  = Bodies.rectangle(w/2, h + 25, w * 2, 50, wallOpts);
-  const wallL   = Bodies.rectangle(-25, h/2, 50, h * 2, wallOpts);
-  const wallR   = Bodies.rectangle(w + 25, h/2, 50, h * 2, wallOpts);
-
-  World.add(engine.world, [ground, wallL, wallR]);
-
-  const mouse = Mouse.create(render.canvas);
-  mouseConstraint = MouseConstraint.create(engine, {
-    mouse,
-    constraint: { stiffness: 0.2, render: { visible: false } }
-  });
-  World.add(engine.world, mouseConstraint);
-  render.mouse = mouse;
-
-  Render.run(render);
-  runner = Runner.create();
-  Runner.run(runner, engine);
-
-  paused = false;
-  slowMode = false;
-  document.getElementById('btn-pause').textContent = 'Pause';
-  document.getElementById('btn-slow').textContent = '0.5× Speed';
-}
-
-function spawnBody(x, y) {
-  const size = 18 + Math.random() * 22;
-  const col = randColor();
-  const opts = {
-    restitution: spawnRestitution,
-    friction: spawnFriction,
-    frictionAir: spawnAirFriction,
-    render: { fillStyle: col, strokeStyle: 'rgba(255,255,255,0.15)', lineWidth: 1 }
-  };
-  let body;
-  if (currentShape === 'circle') body = Bodies.circle(x, y, size / 2, opts);
-  else if (currentShape === 'box') body = Bodies.rectangle(x, y, size, size, opts);
-  else body = Bodies.polygon(x, y, 3, size / 2, opts);
-  World.add(engine.world, body);
-}
-
-// Click to spawn
-wrap.addEventListener('click', e => {
-  if (currentMode !== 'sandbox') return;
-  const rect = wrap.getBoundingClientRect();
-  spawnBody(e.clientX - rect.left, e.clientY - rect.top);
-});
-
-// Mode switching
-document.getElementById('mode-nav').addEventListener('click', e => {
-  const btn = e.target.closest('button[data-mode]');
-  if (!btn) return;
-  document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentMode = btn.dataset.mode;
-  loadMode(currentMode);
-});
-
-const FORMULAS = {
-  sandbox: ['F = ma', "Newton's Second Law: Force equals mass times acceleration. The net force on an object determines how it accelerates."],
-  pendulum: ['T = 2π√(L/g)', 'Period of a pendulum: depends on length L and gravity g — not on mass. Longer pendulums swing more slowly.'],
-  chain: ['Σ F = 0 (static)', 'Each chain link transmits tension forces. In equilibrium, all forces balance. Observe how constraints propagate through the system.'],
-  newton: ['p = mv, Δp = 0', "Conservation of momentum: in an elastic collision, total momentum is conserved. Newton's Cradle demonstrates this beautifully."],
-};
-
-function loadMode(mode) {
-  initEngine();
-  const { w, h } = getSize();
-
-  document.getElementById('canvas-label').textContent = `// ${mode} mode`;
-  document.getElementById('click-hint').style.opacity = mode === 'sandbox' ? '1' : '0';
-
-  const [formula, desc] = FORMULAS[mode];
-  document.getElementById('formula-display').textContent = formula;
-  document.getElementById('formula-desc').textContent = desc;
-
-  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.15)', lineWidth: 1 } };
-
-  if (mode === 'pendulum') {
-    const pivotX = w / 2, pivotY = 80;
-    const count = 5;
-    for (let i = 0; i < count; i++) {
-      const x = pivotX + (i - 2) * 50;
-      const length = 200 + Math.random() * 120;
-      const ball = Bodies.circle(x, pivotY + length, 20, {
-        restitution: 0.9, frictionAir: 0.002,
-        render: { fillStyle: COLORS[i % COLORS.length] }
-      });
-      const constraint = Constraint.create({
-        pointA: { x, y: pivotY },
-        bodyB: ball,
-        length,
-        stiffness: 1,
-        render: { strokeStyle: 'rgba(125,249,200,0.3)', lineWidth: 1 }
-      });
-      Body.setPosition(ball, { x: x + 80, y: pivotY + length });
-      World.add(engine.world, [ball, constraint]);
-    }
-
-  } else if (mode === 'chain') {
-    const segments = 18;
-    const segLen = 18;
-    const startX = w / 2 - (segments * segLen) / 2;
-    const startY = 80;
-    const links = [];
-    for (let i = 0; i < segments; i++) {
-      const link = Bodies.rectangle(startX + i * segLen, startY, segLen - 2, 10, {
-        collisionFilter: { mask: 0x0001 },
-        restitution: 0.3, friction: 0.1,
-        render: { fillStyle: COLORS[i % 3] }
-      });
-      links.push(link);
-    }
-    World.add(engine.world, links);
-    for (let i = 0; i < segments - 1; i++) {
-      World.add(engine.world, Constraint.create({
-        bodyA: links[i], bodyB: links[i + 1],
-        pointA: { x: segLen / 2, y: 0 },
-        pointB: { x: -segLen / 2, y: 0 },
-        stiffness: 0.9, length: 2,
-        render: { strokeStyle: 'rgba(255,255,255,0.2)', lineWidth: 1 }
-      }));
-    }
-    // Pin first and last
-    World.add(engine.world, [
-      Constraint.create({ pointA: { x: startX, y: startY }, bodyB: links[0], stiffness: 1, length: 0, render: { strokeStyle: '#7DF9C8', lineWidth: 1 } }),
-      Constraint.create({ pointA: { x: startX + (segments - 1) * segLen, y: startY }, bodyB: links[segments - 1], stiffness: 1, length: 0, render: { strokeStyle: '#7DF9C8', lineWidth: 1 } }),
-    ]);
-
-    // Drop a heavy ball on the chain
-    const dropper = Bodies.circle(w / 2, 20, 28, {
-      restitution: 0.6, render: { fillStyle: '#FF6B6B' }
-    });
-    World.add(engine.world, dropper);
-
-  } else if (mode === 'newton') {
-    const n = 5;
-    const ballR = 22;
-    const spacing = ballR * 2 + 1;
-    const cx = w / 2;
-    const pivotY = 80;
-    const restY = pivotY + 180;
-    const ballColor = '#FFD166';
-
-    for (let i = 0; i < n; i++) {
-      const x = cx + (i - Math.floor(n / 2)) * spacing;
-      const ball = Bodies.circle(x, restY, ballR, {
-        restitution: 0.99, frictionAir: 0.001, friction: 0,
-        render: { fillStyle: ballColor, strokeStyle: 'rgba(255,255,255,0.2)', lineWidth: 1 }
-      });
-      if (i === 0) Body.setPosition(ball, { x: x - 160, y: pivotY + 20 });
-      const c1 = Constraint.create({ pointA: { x: x - ballR/2, y: pivotY }, bodyB: ball, pointB: { x: -ballR/2, y: -ballR }, stiffness: 1, render: { strokeStyle: 'rgba(255,209,102,0.3)', lineWidth: 1 } });
-      const c2 = Constraint.create({ pointA: { x: x + ballR/2, y: pivotY }, bodyB: ball, pointB: { x: ballR/2, y: -ballR }, stiffness: 1, render: { strokeStyle: 'rgba(255,209,102,0.3)', lineWidth: 1 } });
-      World.add(engine.world, [ball, c1, c2]);
-    }
+// ─── Helpers ───────────────────────────────────────────────
+function toggleSolution(btn, id){
+  btn.classList.toggle('open');
+  const el = document.getElementById(id);
+  el.classList.toggle('visible');
+  btn.querySelector('span:first-child').textContent =
+    el.classList.contains('visible') ? '🙈 הסתר פתרון' : '👁 הצג פתרון מלא';
+  if(el.classList.contains('visible') && window.MathJax){
+    MathJax.typesetPromise([el]).catch(()=>{});
   }
 }
+function scrollTo(id){
+  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const map={'q1':0,'q2':1,'q3':2,'qbonus':3};
+  document.querySelectorAll('.nav-btn')[map[id]]?.classList.add('active');
+}
 
-// Scene presets (sandbox only)
-document.getElementById('scene-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('button[data-scene]');
-  if (!btn) return;
-  document.querySelectorAll('[data-scene]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  buildScene(btn.dataset.scene);
+// ─── SIM 1: Cart + Runner ───────────────────────────────────
+const c1 = document.getElementById('c1');
+const ctx1 = c1.getContext('2d');
+let sim1Running = false, sim1t = 0, sim1Anim = null;
+const M1=4, m1=1;
+
+function resizeCanvas1(){
+  c1.width = c1.offsetWidth * (window.devicePixelRatio||1);
+  c1.height = 200 * (window.devicePixelRatio||1);
+  ctx1.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+  if(!sim1Running) drawSim1(0);
+}
+
+function drawSim1(t){
+  const W=c1.offsetWidth, H=200;
+  ctx1.clearRect(0,0,W,H);
+  // ground
+  ctx1.fillStyle='#1e2230';
+  ctx1.fillRect(0,H-30,W,30);
+  ctx1.strokeStyle='rgba(91,142,255,0.2)';ctx1.lineWidth=1;
+  ctx1.beginPath();ctx1.moveTo(0,H-30);ctx1.lineTo(W,H-30);ctx1.stroke();
+
+  const L=180, cartH=36;
+  const progress = Math.min(t,1);
+  const d = (m1/(m1+M1))*L; // cart displacement
+  const cartX = W/2 - L/2 - progress*d;
+  const runnerX = cartX + progress*L;
+  const cartY = H - 30 - cartH;
+
+  // Platform P (static)
+  ctx1.fillStyle='#252a3d';
+  ctx1.strokeStyle='rgba(82,217,160,0.3)';ctx1.lineWidth=1.5;
+  ctx1.beginPath();ctx1.roundRect(W/2-L-40, cartY-8, 100, cartH+8, 4);ctx1.fill();ctx1.stroke();
+  ctx1.fillStyle='rgba(82,217,160,0.6)';ctx1.font='11px Heebo';ctx1.textAlign='center';
+  ctx1.fillText('P (במה)',W/2-L+10,cartY+cartH/2+4);
+
+  // Cart C
+  ctx1.fillStyle='#252a3d';
+  ctx1.strokeStyle='rgba(91,142,255,0.5)';ctx1.lineWidth=1.5;
+  ctx1.beginPath();ctx1.roundRect(cartX, cartY, L, cartH, 4);ctx1.fill();ctx1.stroke();
+  ctx1.fillStyle='rgba(91,142,255,0.7)';ctx1.font='11px Heebo';ctx1.textAlign='center';
+  ctx1.fillText('C (קרון)',cartX+L/2,cartY+cartH/2+4);
+
+  // Labels A, B
+  ctx1.fillStyle='var(--accent4)';ctx1.font='bold 11px JetBrains Mono';
+  ctx1.fillText('A',cartX+L-4,cartY-5);
+  ctx1.fillText('B',cartX+4,cartY-5);
+
+  // Wheels
+  [cartX+20, cartX+L-20].forEach(wx=>{
+    ctx1.fillStyle='#363d52';ctx1.beginPath();ctx1.arc(wx,H-20,10,0,Math.PI*2);ctx1.fill();
+    ctx1.strokeStyle='rgba(91,142,255,0.3)';ctx1.lineWidth=1;ctx1.stroke();
+  });
+
+  // Runner
+  const rx = runnerX;
+  ctx1.fillStyle='#FF7A5C';
+  ctx1.beginPath();ctx1.arc(rx,cartY-12,10,0,Math.PI*2);ctx1.fill();
+  ctx1.strokeStyle='rgba(255,122,92,0.5)';ctx1.lineWidth=1.5;
+  ctx1.beginPath();ctx1.moveTo(rx,cartY-2);ctx1.lineTo(rx,cartY+20);ctx1.stroke();
+  ctx1.beginPath();ctx1.moveTo(rx-8,cartY+10);ctx1.lineTo(rx+8,cartY+10);ctx1.stroke();
+
+  // CM marker
+  const cmX = W/2 - L/2 + L * M1/(2*(m1+M1));
+  ctx1.strokeStyle='rgba(255,209,102,0.7)';ctx1.lineWidth=1;ctx1.setLineDash([4,4]);
+  ctx1.beginPath();ctx1.moveTo(cmX,40);ctx1.lineTo(cmX,H-30);ctx1.stroke();
+  ctx1.setLineDash([]);
+  ctx1.fillStyle='rgba(255,209,102,0.8)';ctx1.font='10px JetBrains Mono';
+  ctx1.fillText('CM',cmX+4,52);
+
+  // d arrow
+  if(progress>0.05){
+    const ax1=W/2-L/2, ax2=cartX;
+    if(ax2<ax1-2){
+      ctx1.strokeStyle='rgba(82,217,160,0.6)';ctx1.lineWidth=1.5;
+      ctx1.beginPath();ctx1.moveTo(ax1,cartY+cartH+14);ctx1.lineTo(ax2,cartY+cartH+14);ctx1.stroke();
+      ctx1.fillStyle='rgba(82,217,160,0.8)';ctx1.font='10px JetBrains Mono';
+      ctx1.fillText('d',( ax1+ax2)/2,cartY+cartH+26);
+    }
+  }
+
+  document.getElementById('s1-stat').textContent =
+    `זוז קרון: ${(progress*d).toFixed(1)} | CM: קבוע`;
+}
+
+function runSim1(){
+  if(sim1Running)return;
+  sim1Running=true; sim1t=0;
+  function step(){ sim1t+=0.008; drawSim1(sim1t); if(sim1t<1) sim1Anim=requestAnimationFrame(step); else sim1Running=false; }
+  sim1Anim=requestAnimationFrame(step);
+}
+function resetSim1(){ sim1Running=false; cancelAnimationFrame(sim1Anim); sim1t=0; drawSim1(0); }
+
+// ─── SIM 3: Velocity curve ─────────────────────────────────
+function drawVelocityCurve(){
+  const c=document.getElementById('c3');
+  const ctx=c.getContext('2d');
+  c.width=c.offsetWidth*(window.devicePixelRatio||1);
+  c.height=200*(window.devicePixelRatio||1);
+  ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  const W=c.offsetWidth,H=200;
+  const bM=parseFloat(document.getElementById('betaSlider').value);
+  document.getElementById('betaVal').textContent=bM.toFixed(1);
+  const A=1; // g*(mu2m - mu1(m+M))/beta normalized to 1
+  const N=200;
+  ctx.clearRect(0,0,W,H);
+  // axes
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(40,10);ctx.lineTo(40,H-30);ctx.lineTo(W-10,H-30);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px JetBrains Mono';
+  ctx.fillText('t',W-18,H-28);ctx.fillText('v',36,16);
+
+  // curve
+  ctx.strokeStyle='#5B8EFF';ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t=i/N*4;
+    const v=(1-Math.exp(-bM*t));
+    const px=40+(W-55)*(t/4);
+    const py=H-30-(H-50)*v*0.9;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // asymptote
+  ctx.strokeStyle='rgba(82,217,160,0.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  const asY=H-30-(H-50)*0.9;
+  ctx.beginPath();ctx.moveTo(40,asY);ctx.lineTo(W-10,asY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(82,217,160,0.6)';ctx.font='9px JetBrains Mono';
+  ctx.fillText('v∞',W-30,asY-4);
+}
+
+// ─── SIM 2: Disk Pendulum ───────────────────────────────────
+const c2 = document.getElementById('c2');
+const ctx2 = c2.getContext('2d');
+let pendAngle=0.6, pendOmega=0, pendAnim=null;
+let aR=0.5;
+
+function resizeCanvas2(){
+  c2.width=c2.offsetWidth*(window.devicePixelRatio||1);
+  c2.height=280*(window.devicePixelRatio||1);
+  ctx2.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  drawPendulum();
+}
+
+function drawPendulum(){
+  const W=c2.offsetWidth,H=280;
+  ctx2.clearRect(0,0,W,H);
+  const R=70, a=aR*R;
+  const pivX=W/2, pivY=40;
+
+  // pivot
+  ctx2.fillStyle='rgba(255,122,92,0.8)';
+  ctx2.beginPath();ctx2.arc(pivX,pivY,5,0,Math.PI*2);ctx2.fill();
+
+  // arm
+  const diskX=pivX+a*Math.sin(pendAngle);
+  const diskY=pivY+a*Math.cos(pendAngle);
+  ctx2.strokeStyle='rgba(255,255,255,0.3)';ctx2.lineWidth=1.5;
+  ctx2.beginPath();ctx2.moveTo(pivX,pivY);ctx2.lineTo(diskX,diskY);ctx2.stroke();
+
+  // disk
+  ctx2.save();ctx2.translate(diskX,diskY);ctx2.rotate(pendAngle);
+  // disk body
+  ctx2.fillStyle='rgba(91,142,255,0.15)';
+  ctx2.strokeStyle='rgba(91,142,255,0.6)';ctx2.lineWidth=2;
+  ctx2.beginPath();ctx2.arc(0,0,R,0,Math.PI*2);ctx2.fill();ctx2.stroke();
+  // center dot
+  ctx2.fillStyle='rgba(255,209,102,0.8)';
+  ctx2.beginPath();ctx2.arc(0,0,4,0,Math.PI*2);ctx2.fill();
+  // "a" arrow
+  ctx2.strokeStyle='rgba(82,217,160,0.5)';ctx2.lineWidth=1;
+  ctx2.beginPath();ctx2.moveTo(0,0);ctx2.lineTo(0,-a);ctx2.stroke();
+  ctx2.restore();
+
+  // angle arc
+  ctx2.strokeStyle='rgba(255,209,102,0.5)';ctx2.lineWidth=1;
+  ctx2.beginPath();ctx2.arc(pivX,pivY,30,Math.PI/2-0.01,Math.PI/2+pendAngle+0.01,pendAngle<0);ctx2.stroke();
+  ctx2.fillStyle='rgba(255,209,102,0.7)';ctx2.font='11px JetBrains Mono';
+  ctx2.fillText('θ',pivX+16,pivY+22);
+
+  // gravity arrow
+  ctx2.strokeStyle='rgba(255,122,92,0.6)';ctx2.lineWidth=1.5;
+  ctx2.beginPath();ctx2.moveTo(diskX,diskY);ctx2.lineTo(diskX,diskY+45);ctx2.stroke();
+  ctx2.fillStyle='rgba(255,122,92,0.7)';ctx2.font='10px JetBrains Mono';ctx2.fillText('Mg',diskX+5,diskY+40);
+
+  document.getElementById('pendStat').textContent=`θ = ${(pendAngle*180/Math.PI).toFixed(1)}°`;
+}
+
+function updatePendulum(){
+  aR=parseFloat(document.getElementById('aSlider').value);
+  document.getElementById('aVal').textContent=aR.toFixed(2);
+  drawPendulum();
+}
+
+function resetPendulum(){
+  cancelAnimationFrame(pendAnim);
+  pendAngle=0.6;pendOmega=0;
+  let last=null;
+  function step(ts){
+    if(!last)last=ts;
+    const dt=Math.min((ts-last)/1000,0.03);last=ts;
+    const R=70,a=aR*R;
+    const omega2=2*9.8*a/(R*R+2*a*a);
+    pendOmega+=-omega2*Math.sin(pendAngle)*dt;
+    pendAngle+=pendOmega*dt;
+    drawPendulum();
+    pendAnim=requestAnimationFrame(step);
+  }
+  pendAnim=requestAnimationFrame(step);
+}
+
+// ─── SIM 4: Yoyo ───────────────────────────────────────────
+const c4=document.getElementById('c4');
+const ctx4=c4.getContext('2d');
+let yoyoY=0, yoyoR=50, yoyoV=0, yoyoRunning=false, yoyoAnim=null;
+const R1y=15, R2y=50, r0y=50, epy=4;
+
+function resizeCanvas4(){
+  c4.width=c4.offsetWidth*(window.devicePixelRatio||1);
+  c4.height=300*(window.devicePixelRatio||1);
+  ctx4.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);
+  drawYoyo();
+}
+
+function drawYoyo(){
+  const W=c4.offsetWidth,H=300;
+  ctx4.clearRect(0,0,W,H);
+  const cx=W/2, baseY=20;
+  const diskY=baseY+yoyoY;
+
+  // thread
+  const threadH=diskY-baseY;
+  if(threadH>0){
+    ctx4.strokeStyle='rgba(82,217,160,0.5)';ctx4.lineWidth=2;
+    ctx4.beginPath();ctx4.moveTo(cx,baseY);ctx4.lineTo(cx,diskY-R2y);ctx4.stroke();
+  }
+
+  // ceiling
+  ctx4.fillStyle='#1e2230';ctx4.fillRect(cx-40,baseY-10,80,10);
+  ctx4.strokeStyle='rgba(255,255,255,0.2)';ctx4.lineWidth=1;
+  ctx4.beginPath();ctx4.moveTo(cx-40,baseY);ctx4.lineTo(cx+40,baseY);ctx4.stroke();
+
+  // outer disk
+  ctx4.fillStyle='rgba(91,142,255,0.18)';
+  ctx4.strokeStyle='rgba(91,142,255,0.6)';ctx4.lineWidth=2;
+  ctx4.beginPath();ctx4.arc(cx,diskY,R2y,0,Math.PI*2);ctx4.fill();ctx4.stroke();
+
+  // spool
+  ctx4.fillStyle='rgba(82,217,160,0.25)';
+  ctx4.strokeStyle='rgba(82,217,160,0.5)';ctx4.lineWidth=1.5;
+  ctx4.beginPath();ctx4.arc(cx,diskY,yoyoR,0,Math.PI*2);ctx4.fill();ctx4.stroke();
+
+  // inner hole
+  ctx4.fillStyle='var(--bg)';
+  ctx4.beginPath();ctx4.arc(cx,diskY,R1y,0,Math.PI*2);ctx4.fill();
+
+  // labels
+  ctx4.fillStyle='rgba(91,142,255,0.7)';ctx4.font='10px JetBrains Mono';
+  ctx4.fillText('R₂',cx+R2y+3,diskY+3);
+  ctx4.fillStyle='rgba(82,217,160,0.7)';
+  ctx4.fillText('r',cx+yoyoR+3,diskY-8);
+  ctx4.fillStyle='rgba(255,122,92,0.7)';
+  ctx4.fillText('R₁',cx+R1y+3,diskY+12);
+
+  // v arrow
+  if(yoyoV>0.1){
+    ctx4.strokeStyle='rgba(255,122,92,0.7)';ctx4.lineWidth=2;
+    ctx4.beginPath();ctx4.moveTo(cx-R2y-15,diskY);ctx4.lineTo(cx-R2y-15,diskY+yoyoV*4);ctx4.stroke();
+    ctx4.fillStyle='rgba(255,122,92,0.7)';ctx4.font='10px JetBrains Mono';
+    ctx4.fillText(`v=${yoyoV.toFixed(1)}`,cx-R2y-50,diskY+yoyoV*2+4);
+  }
+
+  document.getElementById('yoyoStat').textContent=
+    `v = ${yoyoV.toFixed(2)} | r = ${yoyoR.toFixed(1)} | y = ${yoyoY.toFixed(1)}`;
+}
+
+function startYoyo(){
+  if(yoyoRunning)return;
+  yoyoRunning=true;let last=null;
+  function step(ts){
+    if(!last)last=ts;
+    const dt=Math.min((ts-last)/1000,0.02);last=ts;
+    const g=200;
+    const I=R1y*R1y+R2y*R2y; // normalized 2m=1
+    const maxY=c4.offsetHeight*(window.devicePixelRatio||1)/window.devicePixelRatio-30;
+    const vNew=Math.sqrt(Math.max(0,
+      4*Math.PI*g*yoyoR*yoyoR*(r0y*r0y-yoyoR*yoyoR)/
+      (epy*(2*yoyoR*yoyoR+I))
+    ));
+    yoyoV=vNew;
+    yoyoY+=yoyoV*dt*2;
+    yoyoR=Math.max(R1y, Math.sqrt(Math.max(0, r0y*r0y - yoyoY*epy/Math.PI)));
+    if(yoyoY>maxY-20 || yoyoR<=R1y+0.5){
+      yoyoRunning=false;drawYoyo();return;
+    }
+    drawYoyo();
+    yoyoAnim=requestAnimationFrame(step);
+  }
+  yoyoAnim=requestAnimationFrame(step);
+}
+
+function resetYoyo(){
+  yoyoRunning=false;cancelAnimationFrame(yoyoAnim);
+  yoyoY=0;yoyoR=r0y;yoyoV=0;drawYoyo();
+}
+
+// ─── Init ───────────────────────────────────────────────────
+function initAll(){
+  resizeCanvas1();resizeCanvas2();
+  resizeCanvas4();drawVelocityCurve();
+  resetPendulum();
+}
+window.addEventListener('load', initAll);
+window.addEventListener('resize',()=>{
+  resizeCanvas1();resizeCanvas2();resizeCanvas4();drawVelocityCurve();
 });
 
-function buildScene(scene) {
-  if (currentMode !== 'sandbox') return;
-  initEngine();
-  const { w, h } = getSize();
-  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.2)', lineWidth: 1 } };
-
-  if (scene === 'ramp') {
-    const ramp = Bodies.rectangle(w * 0.3, h * 0.55, 340, 14, { isStatic: true, angle: Math.PI / 7, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
-    const ramp2 = Bodies.rectangle(w * 0.72, h * 0.72, 260, 14, { isStatic: true, angle: -Math.PI / 9, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
-    World.add(engine.world, [ramp, ramp2]);
-    for (let i = 0; i < 10; i++) setTimeout(() => spawnBody(w * 0.1, 60 + i * 5), i * 100);
-
-  } else if (scene === 'funnel') {
-    const left  = Bodies.rectangle(w * 0.28, h * 0.42, 200, 12, { isStatic: true, angle: -Math.PI / 4.5, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
-    const right = Bodies.rectangle(w * 0.72, h * 0.42, 200, 12, { isStatic: true, angle: Math.PI / 4.5, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
-    const shelf = Bodies.rectangle(w * 0.5, h * 0.72, 180, 12, { isStatic: true, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(255,209,102,0.4)', lineWidth: 2 } });
-    World.add(engine.world, [left, right, shelf]);
-    for (let i = 0; i < 18; i++) setTimeout(() => spawnBody(w * 0.3 + Math.random() * w * 0.4, 30), i * 80);
-
-  } else if (scene === 'pyramid') {
-    const rows = 5;
-    const size = 32;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c <= r; c++) {
-        const x = w / 2 + (c - r / 2) * (size + 2);
-        const y = h - 60 - r * (size + 2);
-        World.add(engine.world, Bodies.rectangle(x, y, size, size, {
-          friction: 0.5, restitution: 0.2,
-          render: { fillStyle: COLORS[(r + c) % COLORS.length], strokeStyle: 'rgba(255,255,255,0.1)', lineWidth: 1 }
-        }));
+// Intersection observer to highlight nav
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const map={q1:0,q2:1,q3:2,qbonus:3};
+      const idx=map[e.target.id];
+      if(idx!==undefined){
+        document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.nav-btn')[idx]?.classList.add('active');
       }
     }
-  }
-}
-
-// Shape buttons
-document.querySelectorAll('.shape-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentShape = btn.dataset.shape;
   });
+},{threshold:0.3});
+['q1','q2','q3','qbonus'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)observer.observe(el);
 });
-
-// Sliders
-function bindSlider(id, label, setter, digits = 1) {
-  const input = document.getElementById(id);
-  const out   = document.getElementById(id + '-val');
-  input.addEventListener('input', () => {
-    const v = parseFloat(input.value);
-    out.textContent = v.toFixed(digits);
-    setter(v);
-  });
-}
-
-bindSlider('gravity', 'gravity', v => { engine.gravity.y = v; document.getElementById('stat-gravity').textContent = (v * 9.8).toFixed(1); });
-bindSlider('restitution', 'restitution', v => { spawnRestitution = v; document.getElementById('stat-rest').textContent = v.toFixed(2); }, 2);
-bindSlider('friction', 'friction', v => { spawnFriction = v; }, 2);
-bindSlider('airfriction', 'airfriction', v => { spawnAirFriction = v; }, 3);
-
-// Buttons
-document.getElementById('btn-pause').addEventListener('click', () => {
-  paused = !paused;
-  engine.timing.timeScale = paused ? 0 : (slowMode ? 0.5 : 1);
-  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
-});
-
-document.getElementById('btn-slow').addEventListener('click', () => {
-  slowMode = !slowMode;
-  if (!paused) engine.timing.timeScale = slowMode ? 0.5 : 1;
-  document.getElementById('btn-slow').textContent = slowMode ? '1× Speed' : '0.5× Speed';
-});
-
-document.getElementById('btn-clear').addEventListener('click', () => {
-  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
-  World.remove(engine.world, bodies);
-});
-
-document.getElementById('btn-explode').addEventListener('click', () => {
-  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
-  const { w, h } = getSize();
-  bodies.forEach(b => {
-    const dx = b.position.x - w / 2;
-    const dy = b.position.y - h / 2;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    Body.applyForce(b, b.position, { x: (dx / dist) * 0.08, y: (dy / dist) * 0.08 });
-  });
-});
-
-// FPS + object count
-let frames = 0, lastFPS = performance.now();
-Events.on(engine, 'afterUpdate', () => {
-  frames++;
-  const now = performance.now();
-  if (now - lastFPS > 500) {
-    document.getElementById('stat-fps').textContent = Math.round(frames * 1000 / (now - lastFPS));
-    frames = 0;
-    lastFPS = now;
-  }
-  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
-  document.getElementById('stat-objects').textContent = bodies.length;
-});
-
-// Resize
-window.addEventListener('resize', () => loadMode(currentMode));
-
-// Init
-loadMode('sandbox');
 </script>
 </body>
 </html>
