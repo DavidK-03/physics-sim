@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Physics Lab — Interactive Simulations</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: rgba(255,255,255,0.08);
+      --accent: #7DF9C8;
+      --accent2: #FF6B6B;
+      --accent3: #FFD166;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(125,249,200,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(125,249,200,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 2.5rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .logo span { color: var(--text); }
+
+    .subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    nav {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    nav button {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      padding: 0.45rem 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.18s;
+      text-transform: uppercase;
+    }
+
+    nav button:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    nav button.active {
+      background: var(--accent);
+      color: #0a0a0f;
+      border-color: var(--accent);
+      font-weight: 500;
+    }
+
+    .layout {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      height: calc(100vh - 80px);
+    }
+
+    /* Canvas area */
+    .canvas-wrap {
+      position: relative;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    #sim-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .canvas-label {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .click-hint {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 1.5rem;
+      gap: 1.5rem;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+    }
+
+    .panel-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.85rem;
+      gap: 0.5rem;
+    }
+
+    .control-row:last-child { margin-bottom: 0; }
+
+    .control-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .control-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 90px;
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.55rem 0.5rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+
+    .stat {
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .stat-val.green { color: var(--accent); }
+    .stat-val.red { color: var(--accent2); }
+    .stat-val.yellow { color: var(--accent3); }
+
+    /* Shape selector */
+    .shape-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .shape-btn {
+      padding: 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      text-align: center;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+
+    .shape-btn svg { display: block; margin: 0 auto 4px; }
+    .shape-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .shape-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(125,249,200,0.07); }
+
+    /* Info box */
+    .info-box {
+      background: rgba(125,249,200,0.05);
+      border: 1px solid rgba(125,249,200,0.15);
+      border-radius: 6px;
+      padding: 0.9rem;
+    }
+
+    .info-formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent3);
+      margin-bottom: 0.4rem;
+    }
+
+    .info-desc {
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* Scene selector */
+    .scene-tabs {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .scene-tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.7rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .scene-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .scene-tab.active { border-color: var(--accent3); color: var(--accent3); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Physics<span>Lab</span></div>
+    <div class="subtitle">// interactive simulations — matter.js engine</div>
+  </div>
+  <nav id="mode-nav">
+    <button class="active" data-mode="sandbox">Sandbox</button>
+    <button data-mode="pendulum">Pendulum</button>
+    <button data-mode="chain">Chain</button>
+    <button data-mode="newton">Newton's Cradle</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <div class="canvas-wrap">
+    <div class="canvas-label" id="canvas-label">// sandbox mode — click to spawn objects</div>
+    <canvas id="sim-canvas"></canvas>
+    <div class="click-hint" id="click-hint">click anywhere to add objects</div>
+  </div>
+
+  <div class="sidebar">
+
+    <!-- Scene presets -->
+    <div class="panel">
+      <div class="panel-title">// quick scenes</div>
+      <div class="scene-tabs" id="scene-tabs">
+        <button class="scene-tab active" data-scene="empty">Empty</button>
+        <button class="scene-tab" data-scene="ramp">Ramp</button>
+        <button class="scene-tab" data-scene="funnel">Funnel</button>
+        <button class="scene-tab" data-scene="pyramid">Pyramid</button>
+      </div>
+    </div>
+
+    <!-- Shape selector -->
+    <div class="panel">
+      <div class="panel-title">// spawn shape</div>
+      <div class="shape-grid">
+        <button class="shape-btn active" data-shape="circle">
+          <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          Circle
+        </button>
+        <button class="shape-btn" data-shape="box">
+          <svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          Box
+        </button>
+        <button class="shape-btn" data-shape="triangle">
+          <svg width="20" height="20" viewBox="0 0 20 20"><polygon points="10,3 17,17 3,17" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          Triangle
+        </button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="panel">
+      <div class="panel-title">// physics controls</div>
+      <div class="control-row">
+        <span class="control-label">Gravity</span>
+        <input type="range" id="gravity" min="0" max="3" step="0.1" value="1" />
+        <span class="control-val" id="gravity-val">1.0</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Restitution</span>
+        <input type="range" id="restitution" min="0" max="1" step="0.05" value="0.4" />
+        <span class="control-val" id="restitution-val">0.4</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Friction</span>
+        <input type="range" id="friction" min="0" max="1" step="0.05" value="0.1" />
+        <span class="control-val" id="friction-val">0.1</span>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Air Resistance</span>
+        <input type="range" id="airfriction" min="0" max="0.1" step="0.001" value="0.01" />
+        <span class="control-val" id="airfriction-val">0.01</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="panel">
+      <div class="panel-title">// actions</div>
+      <div class="btn-row" style="margin-bottom:0.5rem">
+        <button class="btn" id="btn-pause">Pause</button>
+        <button class="btn" id="btn-slow">0.5× Speed</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-explode">Explode!</button>
+        <button class="btn danger" id="btn-clear">Clear All</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel">
+      <div class="panel-title">// live stats</div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">Objects</div>
+          <div class="stat-val green" id="stat-objects">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">FPS</div>
+          <div class="stat-val yellow" id="stat-fps">60</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Gravity</div>
+          <div class="stat-val" id="stat-gravity">9.8</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Bouncy</div>
+          <div class="stat-val red" id="stat-rest">0.4</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formula -->
+    <div class="panel">
+      <div class="panel-title">// physics formula</div>
+      <div class="info-box">
+        <div class="info-formula" id="formula-display">F = ma</div>
+        <div class="info-desc" id="formula-desc">Newton's Second Law: Force equals mass times acceleration. The net force on an object determines how it accelerates.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const { Engine, Render, Runner, Bodies, Body, World, Events, Mouse, MouseConstraint, Composite, Constraint, Vector } = Matter;
+
+let engine, render, runner, mouseConstraint;
+let currentMode = 'sandbox';
+let currentShape = 'circle';
+let paused = false;
+let slowMode = false;
+let spawnRestitution = 0.4;
+let spawnFriction = 0.1;
+let spawnAirFriction = 0.01;
+
+const canvas = document.getElementById('sim-canvas');
+const wrap = canvas.parentElement;
+
+function getSize() {
+  return { w: wrap.clientWidth, h: wrap.clientHeight };
+}
+
+const COLORS = ['#7DF9C8','#FF6B6B','#FFD166','#A78BFA','#60A5FA','#FB923C'];
+
+function randColor() { return COLORS[Math.floor(Math.random() * COLORS.length)]; }
+
+function initEngine() {
+  if (render) { Render.stop(render); render.canvas.remove(); }
+  if (runner) Runner.stop(runner);
+
+  const { w, h } = getSize();
+
+  engine = Engine.create();
+  engine.gravity.y = 1;
+
+  render = Render.create({
+    canvas,
+    engine,
+    options: {
+      width: w,
+      height: h,
+      background: 'transparent',
+      wireframes: false,
+      pixelRatio: window.devicePixelRatio || 1,
+    }
+  });
+
+  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.15)', lineWidth: 1 } };
+  const ground  = Bodies.rectangle(w/2, h + 25, w * 2, 50, wallOpts);
+  const wallL   = Bodies.rectangle(-25, h/2, 50, h * 2, wallOpts);
+  const wallR   = Bodies.rectangle(w + 25, h/2, 50, h * 2, wallOpts);
+
+  World.add(engine.world, [ground, wallL, wallR]);
+
+  const mouse = Mouse.create(render.canvas);
+  mouseConstraint = MouseConstraint.create(engine, {
+    mouse,
+    constraint: { stiffness: 0.2, render: { visible: false } }
+  });
+  World.add(engine.world, mouseConstraint);
+  render.mouse = mouse;
+
+  Render.run(render);
+  runner = Runner.create();
+  Runner.run(runner, engine);
+
+  paused = false;
+  slowMode = false;
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('btn-slow').textContent = '0.5× Speed';
+}
+
+function spawnBody(x, y) {
+  const size = 18 + Math.random() * 22;
+  const col = randColor();
+  const opts = {
+    restitution: spawnRestitution,
+    friction: spawnFriction,
+    frictionAir: spawnAirFriction,
+    render: { fillStyle: col, strokeStyle: 'rgba(255,255,255,0.15)', lineWidth: 1 }
+  };
+  let body;
+  if (currentShape === 'circle') body = Bodies.circle(x, y, size / 2, opts);
+  else if (currentShape === 'box') body = Bodies.rectangle(x, y, size, size, opts);
+  else body = Bodies.polygon(x, y, 3, size / 2, opts);
+  World.add(engine.world, body);
+}
+
+// Click to spawn
+wrap.addEventListener('click', e => {
+  if (currentMode !== 'sandbox') return;
+  const rect = wrap.getBoundingClientRect();
+  spawnBody(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+// Mode switching
+document.getElementById('mode-nav').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-mode]');
+  if (!btn) return;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+  loadMode(currentMode);
+});
+
+const FORMULAS = {
+  sandbox: ['F = ma', "Newton's Second Law: Force equals mass times acceleration. The net force on an object determines how it accelerates."],
+  pendulum: ['T = 2π√(L/g)', 'Period of a pendulum: depends on length L and gravity g — not on mass. Longer pendulums swing more slowly.'],
+  chain: ['Σ F = 0 (static)', 'Each chain link transmits tension forces. In equilibrium, all forces balance. Observe how constraints propagate through the system.'],
+  newton: ['p = mv, Δp = 0', "Conservation of momentum: in an elastic collision, total momentum is conserved. Newton's Cradle demonstrates this beautifully."],
+};
+
+function loadMode(mode) {
+  initEngine();
+  const { w, h } = getSize();
+
+  document.getElementById('canvas-label').textContent = `// ${mode} mode`;
+  document.getElementById('click-hint').style.opacity = mode === 'sandbox' ? '1' : '0';
+
+  const [formula, desc] = FORMULAS[mode];
+  document.getElementById('formula-display').textContent = formula;
+  document.getElementById('formula-desc').textContent = desc;
+
+  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.15)', lineWidth: 1 } };
+
+  if (mode === 'pendulum') {
+    const pivotX = w / 2, pivotY = 80;
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const x = pivotX + (i - 2) * 50;
+      const length = 200 + Math.random() * 120;
+      const ball = Bodies.circle(x, pivotY + length, 20, {
+        restitution: 0.9, frictionAir: 0.002,
+        render: { fillStyle: COLORS[i % COLORS.length] }
+      });
+      const constraint = Constraint.create({
+        pointA: { x, y: pivotY },
+        bodyB: ball,
+        length,
+        stiffness: 1,
+        render: { strokeStyle: 'rgba(125,249,200,0.3)', lineWidth: 1 }
+      });
+      Body.setPosition(ball, { x: x + 80, y: pivotY + length });
+      World.add(engine.world, [ball, constraint]);
+    }
+
+  } else if (mode === 'chain') {
+    const segments = 18;
+    const segLen = 18;
+    const startX = w / 2 - (segments * segLen) / 2;
+    const startY = 80;
+    const links = [];
+    for (let i = 0; i < segments; i++) {
+      const link = Bodies.rectangle(startX + i * segLen, startY, segLen - 2, 10, {
+        collisionFilter: { mask: 0x0001 },
+        restitution: 0.3, friction: 0.1,
+        render: { fillStyle: COLORS[i % 3] }
+      });
+      links.push(link);
+    }
+    World.add(engine.world, links);
+    for (let i = 0; i < segments - 1; i++) {
+      World.add(engine.world, Constraint.create({
+        bodyA: links[i], bodyB: links[i + 1],
+        pointA: { x: segLen / 2, y: 0 },
+        pointB: { x: -segLen / 2, y: 0 },
+        stiffness: 0.9, length: 2,
+        render: { strokeStyle: 'rgba(255,255,255,0.2)', lineWidth: 1 }
+      }));
+    }
+    // Pin first and last
+    World.add(engine.world, [
+      Constraint.create({ pointA: { x: startX, y: startY }, bodyB: links[0], stiffness: 1, length: 0, render: { strokeStyle: '#7DF9C8', lineWidth: 1 } }),
+      Constraint.create({ pointA: { x: startX + (segments - 1) * segLen, y: startY }, bodyB: links[segments - 1], stiffness: 1, length: 0, render: { strokeStyle: '#7DF9C8', lineWidth: 1 } }),
+    ]);
+
+    // Drop a heavy ball on the chain
+    const dropper = Bodies.circle(w / 2, 20, 28, {
+      restitution: 0.6, render: { fillStyle: '#FF6B6B' }
+    });
+    World.add(engine.world, dropper);
+
+  } else if (mode === 'newton') {
+    const n = 5;
+    const ballR = 22;
+    const spacing = ballR * 2 + 1;
+    const cx = w / 2;
+    const pivotY = 80;
+    const restY = pivotY + 180;
+    const ballColor = '#FFD166';
+
+    for (let i = 0; i < n; i++) {
+      const x = cx + (i - Math.floor(n / 2)) * spacing;
+      const ball = Bodies.circle(x, restY, ballR, {
+        restitution: 0.99, frictionAir: 0.001, friction: 0,
+        render: { fillStyle: ballColor, strokeStyle: 'rgba(255,255,255,0.2)', lineWidth: 1 }
+      });
+      if (i === 0) Body.setPosition(ball, { x: x - 160, y: pivotY + 20 });
+      const c1 = Constraint.create({ pointA: { x: x - ballR/2, y: pivotY }, bodyB: ball, pointB: { x: -ballR/2, y: -ballR }, stiffness: 1, render: { strokeStyle: 'rgba(255,209,102,0.3)', lineWidth: 1 } });
+      const c2 = Constraint.create({ pointA: { x: x + ballR/2, y: pivotY }, bodyB: ball, pointB: { x: ballR/2, y: -ballR }, stiffness: 1, render: { strokeStyle: 'rgba(255,209,102,0.3)', lineWidth: 1 } });
+      World.add(engine.world, [ball, c1, c2]);
+    }
+  }
+}
+
+// Scene presets (sandbox only)
+document.getElementById('scene-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-scene]');
+  if (!btn) return;
+  document.querySelectorAll('[data-scene]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildScene(btn.dataset.scene);
+});
+
+function buildScene(scene) {
+  if (currentMode !== 'sandbox') return;
+  initEngine();
+  const { w, h } = getSize();
+  const wallOpts = { isStatic: true, render: { fillStyle: '#1c1c26', strokeStyle: 'rgba(125,249,200,0.2)', lineWidth: 1 } };
+
+  if (scene === 'ramp') {
+    const ramp = Bodies.rectangle(w * 0.3, h * 0.55, 340, 14, { isStatic: true, angle: Math.PI / 7, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
+    const ramp2 = Bodies.rectangle(w * 0.72, h * 0.72, 260, 14, { isStatic: true, angle: -Math.PI / 9, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
+    World.add(engine.world, [ramp, ramp2]);
+    for (let i = 0; i < 10; i++) setTimeout(() => spawnBody(w * 0.1, 60 + i * 5), i * 100);
+
+  } else if (scene === 'funnel') {
+    const left  = Bodies.rectangle(w * 0.28, h * 0.42, 200, 12, { isStatic: true, angle: -Math.PI / 4.5, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
+    const right = Bodies.rectangle(w * 0.72, h * 0.42, 200, 12, { isStatic: true, angle: Math.PI / 4.5, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(125,249,200,0.4)', lineWidth: 2 } });
+    const shelf = Bodies.rectangle(w * 0.5, h * 0.72, 180, 12, { isStatic: true, render: { fillStyle: '#3a3a50', strokeStyle: 'rgba(255,209,102,0.4)', lineWidth: 2 } });
+    World.add(engine.world, [left, right, shelf]);
+    for (let i = 0; i < 18; i++) setTimeout(() => spawnBody(w * 0.3 + Math.random() * w * 0.4, 30), i * 80);
+
+  } else if (scene === 'pyramid') {
+    const rows = 5;
+    const size = 32;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c <= r; c++) {
+        const x = w / 2 + (c - r / 2) * (size + 2);
+        const y = h - 60 - r * (size + 2);
+        World.add(engine.world, Bodies.rectangle(x, y, size, size, {
+          friction: 0.5, restitution: 0.2,
+          render: { fillStyle: COLORS[(r + c) % COLORS.length], strokeStyle: 'rgba(255,255,255,0.1)', lineWidth: 1 }
+        }));
+      }
+    }
+  }
+}
+
+// Shape buttons
+document.querySelectorAll('.shape-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentShape = btn.dataset.shape;
+  });
+});
+
+// Sliders
+function bindSlider(id, label, setter, digits = 1) {
+  const input = document.getElementById(id);
+  const out   = document.getElementById(id + '-val');
+  input.addEventListener('input', () => {
+    const v = parseFloat(input.value);
+    out.textContent = v.toFixed(digits);
+    setter(v);
+  });
+}
+
+bindSlider('gravity', 'gravity', v => { engine.gravity.y = v; document.getElementById('stat-gravity').textContent = (v * 9.8).toFixed(1); });
+bindSlider('restitution', 'restitution', v => { spawnRestitution = v; document.getElementById('stat-rest').textContent = v.toFixed(2); }, 2);
+bindSlider('friction', 'friction', v => { spawnFriction = v; }, 2);
+bindSlider('airfriction', 'airfriction', v => { spawnAirFriction = v; }, 3);
+
+// Buttons
+document.getElementById('btn-pause').addEventListener('click', () => {
+  paused = !paused;
+  engine.timing.timeScale = paused ? 0 : (slowMode ? 0.5 : 1);
+  document.getElementById('btn-pause').textContent = paused ? 'Resume' : 'Pause';
+});
+
+document.getElementById('btn-slow').addEventListener('click', () => {
+  slowMode = !slowMode;
+  if (!paused) engine.timing.timeScale = slowMode ? 0.5 : 1;
+  document.getElementById('btn-slow').textContent = slowMode ? '1× Speed' : '0.5× Speed';
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
+  World.remove(engine.world, bodies);
+});
+
+document.getElementById('btn-explode').addEventListener('click', () => {
+  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
+  const { w, h } = getSize();
+  bodies.forEach(b => {
+    const dx = b.position.x - w / 2;
+    const dy = b.position.y - h / 2;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    Body.applyForce(b, b.position, { x: (dx / dist) * 0.08, y: (dy / dist) * 0.08 });
+  });
+});
+
+// FPS + object count
+let frames = 0, lastFPS = performance.now();
+Events.on(engine, 'afterUpdate', () => {
+  frames++;
+  const now = performance.now();
+  if (now - lastFPS > 500) {
+    document.getElementById('stat-fps').textContent = Math.round(frames * 1000 / (now - lastFPS));
+    frames = 0;
+    lastFPS = now;
+  }
+  const bodies = Composite.allBodies(engine.world).filter(b => !b.isStatic);
+  document.getElementById('stat-objects').textContent = bodies.length;
+});
+
+// Resize
+window.addEventListener('resize', () => loadMode(currentMode));
+
+// Init
+loadMode('sandbox');
+</script>
+</body>
+</html>
